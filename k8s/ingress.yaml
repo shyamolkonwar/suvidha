@@ -1,0 +1,90 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: suvidha-ingress
+  namespace: suvidha
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+spec:
+  tls:
+  - hosts:
+    - api.suvidha.example.com
+    - kiosk.suvidha.example.com
+    - admin.suvidha.example.com
+    secretName: suvidha-tls
+  rules:
+  - host: api.suvidha.example.com
+    http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 8001
+      - path: /utility
+        pathType: Prefix
+        backend:
+          service:
+            name: utility-service
+            port:
+              number: 8002
+      - path: /payment
+        pathType: Prefix
+        backend:
+          service:
+            name: payment-service
+            port:
+              number: 8003
+      - path: /grievance
+        pathType: Prefix
+        backend:
+          service:
+            name: grievance-service
+            port:
+              number: 8004
+      - path: /monitor
+        pathType: Prefix
+        backend:
+          service:
+            name: monitor-service
+            port:
+              number: 8005
+      - path: /cms
+        pathType: Prefix
+        backend:
+          service:
+            name: cms-service
+            port:
+              number: 8006
+      - path: /analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-service
+            port:
+              number: 8007
+  - host: kiosk.suvidha.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kiosk-ui
+            port:
+              number: 80
+  - host: admin.suvidha.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: admin-dashboard
+            port:
+              number: 80

@@ -1,0 +1,52 @@
+{
+  "name": "suvidha-kiosk-system",
+  "version": "1.0.0",
+  "description": "Digital Receptionist Kiosk System for Citizen Utility Services",
+  "main": "index.js",
+  "scripts": {
+    "dev": "docker-compose up",
+    "dev:detached": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "clean": "docker-compose down -v",
+    "rebuild": "docker-compose up --build",
+    "logs": "docker-compose logs -f",
+    "logs:auth": "docker-compose logs -f auth-service",
+    "logs:utility": "docker-compose logs -f utility-service",
+    "logs:payment": "docker-compose logs -f payment-service",
+    "logs:grievance": "docker-compose logs -f grievance-service",
+    "db:migrate": "npm run db:migrate:auth && npm run db:migrate:utility && npm run db:migrate:payment && npm run db:migrate:grievance",
+    "db:migrate:auth": "cd services/auth-service && npm run migrate",
+    "db:migrate:utility": "cd services/utility-service && npm run migrate",
+    "db:migrate:payment": "cd services/payment-service && npm run migrate",
+    "db:migrate:grievance": "cd services/grievance-service && npm run migrate",
+    "test": "echo 'Running tests...'",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write '**/*.{ts,tsx,json,md}'"
+  },
+  "keywords": [
+    "kiosk",
+    "utility",
+    "microservices",
+    "government",
+    "citizen-services"
+  ],
+  "author": "SUVIDHA Team",
+  "license": "PROPRIETARY",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "frontend/*",
+    "api-gateway"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

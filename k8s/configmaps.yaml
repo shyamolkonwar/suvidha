@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+  namespace: suvidha
+data:
+  auth-db-host: "postgres-auth.suvidha.svc.cluster.local"
+  utility-db-host: "postgres-utility.suvidha.svc.cluster.local"
+  payment-db-host: "postgres-payment.suvidha.svc.cluster.local"
+  grievance-db-host: "postgres-grievance.suvidha.svc.cluster.local"
+  monitor-db-host: "postgres-monitor.suvidha.svc.cluster.local"
+  cms-db-host: "postgres-cms.suvidha.svc.cluster.local"
+  analytics-db-host: "postgres-analytics.suvidha.svc.cluster.local"
+  redis-host: "redis.suvidha.svc.cluster.local"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secrets
+  namespace: suvidha
+type: Opaque
+stringData:
+  auth-db-password: "CHANGE_ME"
+  utility-db-password: "CHANGE_ME"
+  payment-db-password: "CHANGE_ME"
+  grievance-db-password: "CHANGE_ME"
+  monitor-db-password: "CHANGE_ME"
+  cms-db-password: "CHANGE_ME"
+  analytics-db-password: "CHANGE_ME"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jwt-secret
+  namespace: suvidha
+type: Opaque
+stringData:
+  secret: "CHANGE_ME_TO_SECURE_SECRET"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kiosk-api-key
+  namespace: suvidha
+type: Opaque
+stringData:
+  api-key: "CHANGE_ME_TO_SECURE_KEY"

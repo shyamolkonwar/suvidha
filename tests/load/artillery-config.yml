@@ -1,0 +1,94 @@
+config:
+  target: "http://localhost:8080"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 50
+      name: "Ramp up load"
+    - duration: 180
+      arrivalRate: 100
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 200
+      name: "Spike test"
+  variables:
+    test_consumer_id: "TEST001"
+    test_password: "Test@1234"
+
+scenarios:
+  - name: "User Journey - Full Flow"
+    weight: 70
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            consumer_id: "{{ test_consumer_id }}"
+            password: "{{ test_password }}"
+          capture:
+            - json: "$.data.token"
+              as: "auth_token"
+      
+      - get:
+          url: "/api/utility/bills?utility_type=ELECTRICITY"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
+      
+      - get:
+          url: "/api/payment/transactions"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
+      
+      - get:
+          url: "/api/grievance/complaints"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
+  
+  - name: "Bil Payment Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            consumer_id: "{{ test_consumer_id }}"
+            password: "{{ test_password }}"
+          capture:
+            - json: "$.data.token"
+              as: "auth_token"
+      
+      - get:
+          url: "/api/utility/bills?utility_type=ELECTRICITY"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
+      
+      - post:
+          url: "/api/payment/process"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
+          json:
+            bill_id: "{{ $randomString() }}"
+            amount: 1500
+            payment_method: "UPI"
+  
+  - name: "Analytics Dashboard"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            consumer_id: "{{ test_consumer_id }}"
+            password: "{{ test_password }}"
+          capture:
+            - json: "$.data.token"
+              as: "auth_token"
+      
+      - get:
+          url: "/api/analytics/dashboard"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
+      
+      - get:
+          url: "/api/monitor/kiosks"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
