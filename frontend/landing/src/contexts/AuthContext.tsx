@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase, signIn, signUp, signOut, getSession, onAuthStateChange } from '@/lib/supabase';
 import { apiClient } from '@/lib/api';
 
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   const fetchUserProfile = async (authUser: any) => {
     try {
@@ -74,14 +76,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes - this is key for proper state management
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.email);
       if (!mounted) return;
 
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session?.user) {
+          const userData = await fetchUserProfile(session.user);
+          if (userData) {
+            // Successfully logged in - redirect to dashboard
+            router.replace('/dashboard');
+          }
+        }
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         apiClient.clearToken();
       }
@@ -92,25 +100,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
+  // Login with timeout workaround for known Supabase issue
   const login = async (email: string, password: string) => {
     console.log('Attempting login for:', email);
+
+    // Use Promise.race with timeout to handle the hanging promise issue
+    // See: https://github.com/orgs/supabase/discussions/41329
+    const signInWithTimeout = Promise.race([
+      signIn(email, password),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Login timeout')), 5000)
+      )
+    ]);
+
     try {
-      const data = await signIn(email, password);
-      console.log('Sign in successful, session:', !!data.session);
+      const data = await signInWithTimeout as any;
+      console.log('Sign in completed');
 
-      if (data.session?.access_token) {
-        apiClient.setToken(data.session.access_token);
-      }
-
-      // Manually fetch and set user profile after successful login
-      if (data.session?.user) {
-        await fetchUserProfile(data.session.user);
-      }
-
-      // Wait a bit for state to update
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Don't manually fetch user here - let onAuthStateChange handle it
+      // Just return immediately and let the auth state change listener redirect
+      return;
     } catch (error: any) {
       console.error('Login error:', error);
       throw error;
@@ -121,19 +132,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('Attempting registration for:', email);
     try {
       const data = await signUp(email, password, fullName || '');
-      console.log('Sign up successful, session:', !!data.session);
+      console.log('Sign up completed');
 
-      if (data.session?.access_token) {
-        apiClient.setToken(data.session.access_token);
-      }
-
-      // Manually fetch and set user profile after successful registration
-      if (data.session?.user) {
-        await fetchUserProfile(data.session.user);
-      }
-
-      // Wait for state update
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Don't manually fetch user - let onAuthStateChange handle it
+      return;
     } catch (error: any) {
       console.error('Registration error:', error);
       throw error;
@@ -144,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut();
     apiClient.clearToken();
     setUser(null);
+    router.push('/login');
   };
 
   return (

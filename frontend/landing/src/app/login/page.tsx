@@ -27,7 +27,7 @@ export default function LoginPage() {
       } else {
         await register(email, password, fullName);
       }
-      router.push('/dashboard');
+      // Note: AuthContext handles redirect to dashboard automatically
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
