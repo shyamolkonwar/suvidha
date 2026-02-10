@@ -1,0 +1,18 @@
+# FastAPI and Server
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.9
+
+# Supabase
+supabase==2.7.4
+
+# Pydantic for validation
+pydantic==2.9.2
+pydantic-settings==2.6.0
+
+# Utilities
+python-dotenv==1.0.1
+python-jose[cryptography]==3.3.0
+
+# CORS
+python-dateutil==2.9.0.post0

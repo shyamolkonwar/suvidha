@@ -1,0 +1,88 @@
+1. Design System: "Eco-Modern"
+Color Palette (The "Green Hierarchy")
+We use shades of green to denote status and action, keeping the background clean white.
+
+Color Name	Hex Code	Usage	Visual Effect
+Deep Forest	#064E3B	Primary Headings, Navbar Background	Trust, Authority, Stability
+Signal Green	#10B981	Primary Buttons (CTA), Active States	Energy, "Go", Success
+Mint Mist	#D1FAE5	Secondary Buttons, Section Backgrounds	Softness, Approachability
+Pure White	#FFFFFF	Card Backgrounds, Main Canvas	Cleanliness, Space
+Gunmetal	#1F2937	Body Text	High Readability (Softer than black)
+Typography (The "Global-Local" Pair)
+English: Inter (Google Font). A variable font that is clean, geometric, and highly legible on screens.
+Hindi/Regional: Hind (Google Font). Designed to match the geometry of Inter, ensuring the UI looks consistent even when the language switches.
+Shadows & Depth (Glassmorphism)
+Card Shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1) (A soft, green-tinted glow).
+Glass Effect: backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.8); (Used for the Floating Navbar).
+2. The Floating Navbar (Navigation)
+Instead of a boring bar stuck to the top, we use a "Floating Capsule" navbar. It sits 20px from the top, centered or spanning 90% width, floating above the content like a modern app header.
+
+Specs:
+Position: fixed, top-4, inset-x-0 (Tailwind classes).
+Style: Pill-shaped rounded corners (rounded-full).
+Background: White with 80% opacity + Blur (Glassmorphism).
+Border: Thin, subtle green (border border-green-100).
+Layout:
+Left: Logo (Text: "SUVIDHA" in Deep Forest Bold + Green Leaf Icon).
+Center: Links (Hidden on Mobile, Visible on Desktop).
+Home, Services, Track Status, Help.
+Hover State: Text turns Signal Green and a small green dot appears below the text.
+Right: "Access" Button.
+Style: Gradient Green Pill Button.
+Text: "Citizen Login".
+3. Hero Section (The "First Impression")
+This is the most critical part. It must be clean. No clutter.
+
+Background: A split layout or a subtle mesh gradient.
+CSS Gradient: background: radial-gradient(circle at 50% 50%, #ECFDF5 0%, #FFFFFF 100%); (A soft glow of Mint Green in the center).
+Content Alignment:
+Left (Text):
+Badge: A small pill tag saying 🚀 SUVIDHA 2.0 IS LIVE (Mint bg, Green text).
+Headline: Huge, Bold, Tight line height.
+"Governance at the Speed of Light."
+Sub-headline: "Pay bills, report issues, and manage your city life. Zero queues. Zero paperwork."
+CTA Button: (See Section 4).
+Right (Visual):
+Instead of a stock photo of a handshake, use a 3D Floating Illustration or a High-Quality Vector of a Smart City Dashboard tilting in 3D space.
+4. Button Architecture
+Buttons are the main interaction points. They must feel "tactile."
+
+Primary CTA (The "Pay Now" / "Login" Button)
+Shape: Fully Rounded (rounded-full).
+Color: bg-emerald-500 hover:bg-emerald-600.
+Text: White, Semibold.
+Effect: When hovered, it lifts up slightly (transform -translate-y-1) and casts a soft green shadow (shadow-lg shadow-emerald-500/30).
+Code Concept:
+CSS
+.btn-primary {
+  background: #10B981;
+  color: white;
+  padding: 12px 32px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.23);
+}
+Secondary Button (The "Learn More" Button)
+Shape: Fully Rounded.
+Background: Transparent.
+Border: 2px solid Mint Mist.
+Text: Deep Forest.
+Hover: Fills with Mint Mist.
+5. Service Cards (The "Bento Grid")
+Below the Hero section, use a Bento Grid layout (like Apple's promotional cards) to show services.
+Style: Large, white, rounded rectangles (rounded-3xl).
+Hover: The card border lights up in Green.
+Iconography: Use Duotone Icons (Two shades of green).
+Example: An Electricity Bolt where half is Dark Green and half is Light Mint.
+Card Layout:
+Electricity: Large card. Shows a "Live Graph" placeholder.
+Water: Medium card. Shows a "Drop" icon.
+Municipal: Medium card. Shows a "Building" icon.
+6. Responsive Behavior (Mobile)
+Navbar: On mobile, the "Center Links" disappear. The "Logo" stays left, and a "Hamburger Menu" (Two simple lines, not three) appears on the right.
+Hero Text: Center-aligned on mobile. Size scales down from text-6xl to text-4xl.
+Grid: The Bento Grid turns into a single-column vertical stack.

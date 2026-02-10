@@ -1,0 +1,94 @@
+1. The "Iron Dome" Architecture
+We will not build a messy "monolith." We will build a Modular API where every component has a single responsibility.
+The Interface (FastAPI): Receives requests from the Kiosk.
+The Guard (Supabase Auth): Verifies the "Identity Token" (JWT) before allowing entry.
+The Memory (Redis): Stores "hot data" (Live Alerts, Weather, Total Bill) to serve it instantly (in milliseconds).
+The Vault (Supabase DB): Stores "cold data" (User Profiles, Transaction History, Grievance Logs).
+2. Project Directory Structure
+Do not just dump files in one folder. Organize like a pro.
+
+Plaintext
+/backend
+├── /app
+│   ├── main.py            # The Entry Point (Launches the API)
+│   ├── /core              # Config (Env variables, Supabase/Redis clients)
+│   ├── /routers           # API Endpoints (The "Doors" to the system)
+│   │   ├── auth.py        # Login/OTP routes
+│   │   ├── billing.py     # Electricity/Water bill routes
+│   │   ├── grievance.py   # Complaint submission routes
+│   │   └── city_data.py   # Weather/News ticker routes
+│   ├── /services          # Business Logic (The "Brain")
+│   │   ├── payment_engine.py
+│   │   └── ai_processor.py
+│   └── /models            # Pydantic Schemas (Data Validation)
+├── requirements.txt
+└── .env                   # Secrets (API Keys)
+3. Step-by-Step Implementation Guide
+Phase 1: The "Connection" Layer (Core)
+Before building features, you must establish secure lines of communication.
+Supabase Connection:
+Use the supabase-py client.
+Create a singleton instance in core/database.py.
+Why: This keeps one connection open instead of opening/closing it 100 times (which is slow).
+Redis Connection:
+Use redis-py (async).
+Strategy: When the app starts (main.py), ping Redis. If it fails, log a critical error. The Kiosk needs Redis for speed.
+Phase 2: The "Gatekeeper" (Authentication)
+File: routers/auth.py
+
+The Kiosk frontend sends a Phone Number. The Backend must handle the security.
+Endpoint: POST /auth/login
+Input: { "phone": "+919876543210" }
+Logic: Call Supabase Auth to send an OTP (or mock it for the hackathon).
+Response: { "status": "OTP Sent", "session_id": "xyz" }
+Endpoint: POST /auth/verify
+Input: { "phone": "...", "otp": "1234" }
+Logic: Verify with Supabase. If valid, Supabase returns a JWT (Access Token).
+Action: Send this Token to the Frontend. The Frontend must attach this token to every future request.
+Phase 3: The "Aggregator" (Billing Service)
+File: routers/billing.py
+
+This is where you win on "Innovation." Instead of checking 3 different databases (Electricity, Water, Gas), your backend aggregates them.
+Endpoint: GET /billing/summary
+Header: Authorization: Bearer <Token>
+Logic (The "Cache-First" Strategy):
+Check Redis: Does key user:123:bill_summary exist?
+If YES: Return data immediately (Speed: 5ms).
+If NO: Query Supabase bills table -> Sum up Electricity + Water + Gas -> Save to Redis (expire in 10 mins) -> Return data.
+Phase 4: The "Listener" (Grievance Redressal)
+File: routers/grievance.py
+
+This handles the "Voice Complaint" feature.
+Endpoint: POST /grievance/submit
+Input: Audio file (blob) or Text.
+Logic:
+Save the complaint to Supabase grievances table.
+(Innovation) Trigger a background task to analyze the "Urgency" using simple keyword matching (e.g., if text contains "Spark", "Fire", "Current" -> Set Priority = HIGH).
+Response: { "ticket_id": "#8829", "estimated_resolution": "24 Hours" }
+4. Database Schema (Supabase SQL)
+You need to create these tables in the Supabase SQL Editor.
+
+Table 1: profiles
+id (UUID, Primary Key)
+phone (Text, Unique)
+full_name (Text)
+city_zone (Text) - e.g., "Sector 4"
+Table 2: bills
+id (UUID)
+user_id (FK to profiles)
+service_type (Enum: 'ELECTRICITY', 'WATER', 'GAS')
+amount_due (Decimal)
+due_date (Date)
+status (Enum: 'PAID', 'PENDING')
+Table 3: grievances
+ticket_id (Text)
+user_id (FK)
+category (Text)
+description (Text)
+status (Enum: 'OPEN', 'RESOLVED')
+5. Deployment Strategy (For the Hackathon)
+Since this is a hackathon, don't waste time on complex Docker orchestration unless you have to.
+Local Dev: Run fastapi dev main.py.
+Public Access: Use Ngrok.
+Run ngrok http 8000.
+This gives you a public URL (https://xyz.ngrok.io) to put in your Next.js Frontend. This allows the Kiosk (Frontend) to talk to your Backend (Laptop) over the internet.

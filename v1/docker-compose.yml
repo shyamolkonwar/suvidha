@@ -1,0 +1,416 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # DATABASES
+  # ==========================================
+  auth-db:
+    image: postgres:15-alpine
+    container_name: suvidha-auth-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - suvidha-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U auth_user -d auth_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  utility-db:
+    image: postgres:15-alpine
+    container_name: suvidha-utility-db
+    environment:
+      POSTGRES_DB: utility_db
+      POSTGRES_USER: utility_user
+      POSTGRES_PASSWORD: utility_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - utility-db-data:/var/lib/postgresql/data
+    networks:
+      - suvidha-network
+
+  payment-db:
+    image: postgres:15-alpine
+    container_name: suvidha-payment-db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    networks:
+      - suvidha-network
+
+  grievance-db:
+    image: postgres:15-alpine
+    container_name: suvidha-grievance-db
+    environment:
+      POSTGRES_DB: grievance_db
+      POSTGRES_USER: grievance_user
+      POSTGRES_PASSWORD: grievance_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - grievance-db-data:/var/lib/postgresql/data
+    networks:
+      - suvidha-network
+
+  monitor-db:
+    image: postgres:15-alpine
+    container_name: suvidha-monitor-db
+    environment:
+      POSTGRES_DB: monitor_db
+      POSTGRES_USER: monitor_user
+      POSTGRES_PASSWORD: monitor_password
+    ports:
+      - "5436:5432"
+    volumes:
+      - monitor-db-data:/var/lib/postgresql/data
+    networks:
+      - suvidha-network
+
+  cms-db:
+    image: postgres:15-alpine
+    container_name: suvidha-cms-db
+    environment:
+      POSTGRES_DB: cms_db
+      POSTGRES_USER: cms_user
+      POSTGRES_PASSWORD: cms_password
+    ports:
+      - "5437:5432"
+    volumes:
+      - cms-db-data:/var/lib/postgresql/data
+    networks:
+      - suvidha-network
+
+  analytics-db:
+    image: postgres:15-alpine
+    container_name: suvidha-analytics-db
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_password
+    ports:
+      - "5438:5432"
+    volumes:
+      - analytics-db-data:/var/lib/postgresql/data
+    networks:
+      - suvidha-network
+
+  # ==========================================
+  # REDIS CACHE
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: suvidha-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - suvidha-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ==========================================
+  # MICROSERVICES
+  # ==========================================
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: suvidha-auth-service
+    environment:
+      NODE_ENV: development
+      PORT: 8001
+      DB_HOST: auth-db
+      DB_PORT: 5432
+      DB_NAME: auth_db
+      DB_USER: auth_user
+      DB_PASSWORD: auth_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: ${JWT_EXPIRY}
+    ports:
+      - "8001:8001"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/auth-service:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  utility-service:
+    build:
+      context: ./services/utility-service
+      dockerfile: Dockerfile
+    container_name: suvidha-utility-service
+    environment:
+      NODE_ENV: development
+      PORT: 8002
+      DB_HOST: utility-db
+      DB_PORT: 5432
+      DB_NAME: utility_db
+      DB_USER: utility_user
+      DB_PASSWORD: utility_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8002:8002"
+    depends_on:
+      - utility-db
+      - redis
+    volumes:
+      - ./services/utility-service:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    container_name: suvidha-payment-service
+    environment:
+      NODE_ENV: development
+      PORT: 8003
+      DB_HOST: payment-db
+      DB_PORT: 5432
+      DB_NAME: payment_db
+      DB_USER: payment_user
+      DB_PASSWORD: payment_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+    ports:
+      - "8003:8003"
+    depends_on:
+      - payment-db
+      - redis
+    volumes:
+      - ./services/payment-service:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  grievance-service:
+    build:
+      context: ./services/grievance-service
+      dockerfile: Dockerfile
+    container_name: suvidha-grievance-service
+    environment:
+      NODE_ENV: development
+      PORT: 8004
+      DB_HOST: grievance-db
+      DB_PORT: 5432
+      DB_NAME: grievance_db
+      DB_USER: grievance_user
+      DB_PASSWORD: grievance_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8004:8004"
+    depends_on:
+      - grievance-db
+      - redis
+    volumes:
+      - ./services/grievance-service:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  monitor-service:
+    build:
+      context: ./services/monitor-service
+      dockerfile: Dockerfile
+    container_name: suvidha-monitor-service
+    environment:
+      NODE_ENV: development
+      PORT: 8005
+      DB_HOST: monitor-db
+      DB_PORT: 5432
+      DB_NAME: monitor_db
+      DB_USER: monitor_user
+      DB_PASSWORD: monitor_password
+      AUTH_SERVICE_URL: http://auth-service:8001
+      KIOSK_API_KEY: ${KIOSK_API_KEY}
+    ports:
+      - "8005:8005"
+    depends_on:
+      - monitor-db
+      - auth-service
+    volumes:
+      - ./services/monitor-service:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  cms-service:
+    build:
+      context: ./services/cms-service
+      dockerfile: Dockerfile
+    container_name: suvidha-cms-service
+    environment:
+      NODE_ENV: development
+      PORT: 8006
+      DB_HOST: cms-db
+      DB_PORT: 5432
+      DB_NAME: cms_db
+      DB_USER: cms_user
+      DB_PASSWORD: cms_password
+      AUTH_SERVICE_URL: http://auth-service:8001
+    ports:
+      - "8006:8006"
+    depends_on:
+      - cms-db
+      - auth-service
+    volumes:
+      - ./services/cms-service:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    container_name: suvidha-analytics-service
+    environment:
+      NODE_ENV: development
+      PORT: 8007
+      DB_HOST: analytics-db
+      DB_PORT: 5432
+      DB_NAME: analytics_db
+      DB_USER: analytics_user
+      DB_PASSWORD: analytics_password
+      AUTH_DB_URL: postgresql://auth_user:auth_password@auth-db:5432/auth_db
+      UTILITY_DB_URL: postgresql://utility_user:utility_password@utility-db:5432/utility_db
+      PAYMENT_DB_URL: postgresql://payment_user:payment_password@payment-db:5432/payment_db
+      GRIEVANCE_DB_URL: postgresql://grievance_user:grievance_password@grievance-db:5432/grievance_db
+      AUTH_SERVICE_URL: http://auth-service:8001
+    ports:
+      - "8007:8007"
+    depends_on:
+      - analytics-db
+      - auth-db
+      - utility-db
+      - payment-db
+      - grievance-db
+      - auth-service
+    volumes:
+      - ./services/analytics-service:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  # ==========================================
+  # API GATEWAY (NGINX for MVP, Kong for production)
+  # ==========================================
+  api-gateway:
+    image: nginx:alpine
+    container_name: suvidha-api-gateway
+    ports:
+      - "8000:80"
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - utility-service
+      - payment-service
+      - grievance-service
+      - monitor-service
+      - cms-service
+      - analytics-service
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+  # ==========================================
+  # FRONTEND APPLICATIONS
+  # ==========================================
+  kiosk-ui:
+    build:
+      context: ./frontend/kiosk-ui
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8000
+        NEXT_PUBLIC_AUTH_SERVICE_URL: http://auth-service:8001
+        NEXT_PUBLIC_UTILITY_SERVICE_URL: http://utility-service:8002
+        NEXT_PUBLIC_PAYMENT_SERVICE_URL: http://payment-service:8003
+        NEXT_PUBLIC_GRIEVANCE_SERVICE_URL: http://grievance-service:8004
+    container_name: suvidha-kiosk-ui
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+    depends_on:
+      - api-gateway
+      - auth-service
+      - utility-service
+      - payment-service
+      - grievance-service
+
+  admin-dashboard:
+    build:
+      context: ./frontend/admin-dashboard
+      dockerfile: Dockerfile
+    container_name: suvidha-admin-dashboard
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./frontend/admin-dashboard:/app
+      - /app/node_modules
+    networks:
+      - suvidha-network
+    restart: unless-stopped
+
+# ==========================================
+# VOLUMES
+# ==========================================
+volumes:
+  auth-db-data:
+  utility-db-data:
+  payment-db-data:
+  grievance-db-data:
+  monitor-db-data:
+  cms-db-data:
+  analytics-db-data:
+  redis-data:
+
+    # ==========================================
+    # NETWORKS
+    # ==========================================
+networks:
+  suvidha-network:
+    driver: bridge

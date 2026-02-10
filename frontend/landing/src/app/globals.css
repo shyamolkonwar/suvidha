@@ -1,0 +1,171 @@
+/* ========================================
+   SUVIDHA — Eco-Modern Design System
+   ======================================== */
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Hind:wght@400;500;600;700&display=swap');
+
+/* ── Design Tokens ── */
+:root {
+  /* Color palette — Green Hierarchy */
+  --deep-forest: #064E3B;
+  --signal-green: #10B981;
+  --signal-green-dark: #059669;
+  --mint-mist: #D1FAE5;
+  --mint-glow: #ECFDF5;
+  --pure-white: #FFFFFF;
+  --gunmetal: #1F2937;
+  --gunmetal-light: #374151;
+
+  /* Shadows */
+  --card-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1);
+  --card-shadow-hover: 0 20px 30px -5px rgba(16, 185, 129, 0.18);
+  --btn-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+  --btn-shadow-hover: 0 6px 20px 0 rgba(16, 185, 129, 0.23);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-blur: blur(12px);
+  --glass-border: rgba(209, 250, 229, 0.6);
+
+  /* Typography */
+  --font-en: 'Inter', sans-serif;
+  --font-hi: 'Hind', sans-serif;
+  --font-primary: var(--font-en);
+
+  /* Spacing */
+  --nav-height: 72px;
+  --section-padding: 120px;
+  --container-max: 1200px;
+
+  /* Transitions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.2s var(--ease-out);
+  --transition-med: 0.35s var(--ease-out);
+}
+
+/* ── Reset & Base ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-primary);
+  color: var(--gunmetal);
+  background: var(--pure-white);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ── Button Architecture ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--signal-green);
+  color: var(--pure-white);
+  padding: 14px 36px;
+  border-radius: 9999px;
+  border: none;
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--btn-shadow);
+  transition: transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--btn-shadow-hover);
+  background: var(--signal-green-dark);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--deep-forest);
+  padding: 14px 36px;
+  border-radius: 9999px;
+  border: 2px solid var(--mint-mist);
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.btn-secondary:hover {
+  background: var(--mint-mist);
+  border-color: var(--signal-green);
+}
+
+/* ── Container ── */
+.container {
+  width: 90%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+}
+
+/* ── Section Title ── */
+.section-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--deep-forest);
+  line-height: 1.2;
+  margin-bottom: 16px;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  color: var(--gunmetal-light);
+  max-width: 520px;
+}
+
+/* ── Responsive Utilities ── */
+@media (max-width: 768px) {
+  :root {
+    --section-padding: 80px;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+  }
+}

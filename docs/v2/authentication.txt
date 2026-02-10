@@ -1,0 +1,18 @@
+Kiosk (Touch Screen), typing an email and complex password can be frustrating. To keep the "Premium" feel, the UI must be oversized, forgiving, and clear. We will treat the email input like a "Digital Key" rather than a boring form.
+
+Authentication System: The "Green Key" Protocol
+1. Design Philosophy: "Frictionless Entry"
+Standard email forms are boring. Ours must look like a Security Terminal.
+Visual Style: Clean White cards floating on a soft Mint Mist background.
+Input Fields: Massive touch targets (60px height). No tiny text.
+Feedback: When the user types, the border glows Signal Green (#10B981).
+2. Page 1: The Identity Gate (Login)
+Route: /auth/login
+
+A. The Layout (Split Screen)
+Left Half (Visual): A high-quality vector illustration of a Shield with a Green Leaf (representing Secure Civic Tech).
+Caption: "Your Gateway to Smart Governance."
+Right Half (Interaction): The Login Card.
+B. The Input Fields (The "Touch" Experience)
+Instead of a crowded form, we use spacing to make it feel breathable.
+Field 1: Citizen ID (Email)
