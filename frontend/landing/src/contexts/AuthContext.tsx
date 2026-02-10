@@ -1,7 +1,8 @@
-// Auth Context for managing authentication state
+// Auth Context for managing authentication state with Supabase
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase, signIn, signUp, signOut, getSession, getUser, onAuthStateChange } from '@/lib/supabase';
 import { apiClient } from '@/lib/api';
 
 interface User {
@@ -16,7 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (email: string, password: string, fullName?: string) => Promise<void>;
 }
 
@@ -27,49 +28,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const token = apiClient.getToken();
-    if (token) {
-      // Verify token by fetching user info
-      apiClient.getMe()
-        .then((data: any) => {
-          setUser({
-            id: data.id,
-            email: data.phone, // Backend uses phone field for email
-            full_name: data.full_name,
-            consumer_id: data.consumer_id,
-          });
-        })
-        .catch(() => {
-          apiClient.clearToken();
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
+    // Initialize auth state
+    const initAuth = async () => {
+      try {
+        const session = await getSession();
+        if (session?.user) {
+          // Get user profile from public.users table via API
+          await fetchUserProfile(session.user);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await fetchUserProfile(session.user);
+      } else {
+        setUser(null);
+        apiClient.clearToken();
+      }
       setIsLoading(false);
-    }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  const fetchUserProfile = async (authUser: any) => {
+    try {
+      // Get the access token for API calls
+      const session = await getSession();
+      if (session?.access_token) {
+        apiClient.setToken(session.access_token);
+
+        // Fetch user profile from our API (which queries public.users)
+        const profile = await apiClient.getMe();
+        setUser({
+          id: profile.id,
+          email: profile.email || authUser.email,
+          full_name: profile.full_name || authUser.user_metadata?.full_name,
+          consumer_id: profile.consumer_id,
+        });
+      }
+    } catch (error) {
+      // User might not exist in public.users yet, use auth user data
+      setUser({
+        id: authUser.id,
+        email: authUser.email,
+        full_name: authUser.user_metadata?.full_name,
+      });
+    }
+  };
+
   const login = async (email: string, password: string) => {
-    const response = await apiClient.login(email, password);
-    apiClient.setToken(response.access_token);
-    setUser({
-      id: response.user.id,
-      email: (response.user as any).email || (response.user as any).phone || email,
-      full_name: response.user.full_name,
-      consumer_id: response.user.consumer_id,
-    });
+    const data = await signIn(email, password);
+    if (data.session?.access_token) {
+      apiClient.setToken(data.session.access_token);
+    }
+    // Auth state change listener will update user
   };
 
   const register = async (email: string, password: string, fullName?: string) => {
-    await apiClient.register(email, password, fullName);
-    // Auto-login after registration
-    await login(email, password);
+    const data = await signUp(email, password, fullName || '');
+    if (data.session?.access_token) {
+      apiClient.setToken(data.session.access_token);
+    }
+    // Auth state change listener will update user
+    // Note: Supabase creates auth.users entry automatically
+    // The database trigger will create public.users entry
   };
 
-  const logout = () => {
-    apiClient.logout();
+  const logout = async () => {
+    await signOut();
+    apiClient.clearToken();
     setUser(null);
   };
 

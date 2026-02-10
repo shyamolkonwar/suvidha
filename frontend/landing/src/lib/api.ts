@@ -1,23 +1,10 @@
 // API Client for SUVIDHA Backend
+// NOTE: Authentication (login/register) is handled by Supabase JS client
+// See: src/lib/supabase.ts for auth functions
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Types
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  user: {
-    id: string;
-    email: string;
-    full_name?: string;
-    consumer_id?: string;
-  };
-}
-
 export interface DashboardSummary {
   user_id: string;
   total_due: number;
@@ -59,6 +46,16 @@ export interface SystemStatus {
   };
   cache: string;
   database: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  consumer_id?: string;
+  phone?: string;
+  city_zone?: string;
+  user_type?: string;
 }
 
 // API Client
@@ -127,27 +124,9 @@ class ApiClient {
     return response.json();
   }
 
-  // Auth endpoints
-  async login(email: string, password: string): Promise<LoginResponse> {
-    const params = new URLSearchParams({ email, password });
-    return this.request<LoginResponse>(`/api/auth/login?${params}`, {
-      method: 'POST',
-    });
-  }
-
-  async register(email: string, password: string, fullName?: string): Promise<any> {
-    const params = new URLSearchParams({
-      email,
-      password,
-      ...(fullName && { full_name: fullName }),
-    });
-    return this.request(`/api/auth/register?${params}`, {
-      method: 'POST',
-    });
-  }
-
-  async getMe() {
-    return this.request('/api/auth/me');
+  // Auth endpoints (getMe only - login/register handled by Supabase)
+  async getMe(): Promise<UserProfile> {
+    return this.request<UserProfile>('/api/auth/me');
   }
 
   logout() {

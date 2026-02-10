@@ -246,15 +246,41 @@ CREATE TRIGGER update_meter_readings_updated_at
 -- ==========================================
 
 -- Function to handle new user signup from Supabase Auth
+-- Automatically creates a record in public.users when user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    consumer_id_val TEXT;
 BEGIN
-    INSERT INTO public.users (email, full_name, consumer_id)
+    -- Generate consumer_id from email
+    consumer_id_val := UPPER(REGEXP_REPLACE(NEW.email, '[@\.]', '_'));
+
+    -- Insert into public.users with auth.users.id
+    INSERT INTO public.users (
+        id,
+        email,
+        full_name,
+        consumer_id,
+        user_type,
+        language_preference
+    )
     VALUES (
+        NEW.id,
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-        split_part(NEW.email, '@', 1)
-    );
+        COALESCE(
+            NEW.raw_user_meta_data->>'full_name',
+            NEW.raw_user_meta_data->>'name',
+            split_part(NEW.email, '@', 1)
+        ),
+        consumer_id_val,
+        'consumer',
+        'en'
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        full_name = EXCLUDED.full_name,
+        updated_at = NOW();
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -342,8 +368,9 @@ GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO authenticated;
 -- VIEWS FOR COMMON QUERIES
 -- ==========================================
 
--- View for dashboard summary
-CREATE OR REPLACE VIEW public.dashboard_summary AS
+-- View for dashboard summary (SECURITY INVOKER - respects RLS)
+CREATE OR REPLACE VIEW public.dashboard_summary
+WITH (security_invoker = true) AS
 SELECT
     u.id AS user_id,
     u.email,
@@ -355,6 +382,10 @@ FROM public.users u
 LEFT JOIN public.bills b ON b.user_id = u.id
 LEFT JOIN public.grievances g ON g.user_id = u.id
 GROUP BY u.id, u.email, u.full_name;
+
+-- Grant permissions for the view
+GRANT SELECT ON public.dashboard_summary TO authenticated;
+GRANT SELECT ON public.dashboard_summary TO anon;
 
 -- ==========================================
 -- NOTES
