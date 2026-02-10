@@ -27,7 +27,7 @@ async def get_current_user(
     The token is passed in the Authorization header as: Bearer <token>
 
     This endpoint:
-    1. Verifies the Supabase JWT token
+    1. Verifies the Supabase JWT token using Supabase's auth.get_user()
     2. Extracts the user ID from the token
     3. Fetches the user profile from public.users table
     """
@@ -44,7 +44,7 @@ async def get_current_user(
         token = authorization
 
     # Verify Supabase JWT token and get user_id
-    user_id = get_user_id_from_token(token)
+    user_id = await get_user_id_from_token(token)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

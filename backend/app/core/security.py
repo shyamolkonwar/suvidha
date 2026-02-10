@@ -1,52 +1,49 @@
 """Security - JWT Token Verification using Supabase"""
-import jwt
 from typing import Optional, Dict, Any
 from app.core.config import settings
+from app.core.database import get_supabase_admin
 
 
-def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
+async def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
     """
-    Verify a Supabase JWT token and return the decoded payload.
+    Verify a Supabase JWT token using Supabase's built-in verification.
 
-    Supabase uses HS256 algorithm with the JWT secret.
+    This uses Supabase's auth.get_user() method which properly validates
+    the token signature and expiration using Supabase's JWKS.
 
     Args:
-        token: The JWT token from Supabase
+        token: The JWT access token from Supabase
 
     Returns:
-        The decoded token payload if valid, None otherwise
+        The user object if valid, None otherwise
     """
     try:
-        # Decode and verify the token using Supabase JWT secret
-        payload = jwt.decode(
-            token,
-            settings.JWT_SECRET,
-            algorithms=[settings.JWT_ALGORITHM],
-            options={
-                "verify_signature": True,
-                "verify_exp": True,
-                "verify_aud": False,  # Supabase tokens may not have aud
-            }
-        )
-
-        # Check if this is a valid auth token
-        if payload.get("role") not in ["anon", "authenticated", "service_role"]:
+        supabase = get_supabase_admin()
+        if not supabase:
+            print("Supabase client not available")
             return None
 
-        return payload
+        # Use Supabase's built-in token verification
+        response = supabase.auth.get_user(token)
 
-    except jwt.ExpiredSignatureError:
-        # Token has expired
+        if response.user:
+            return {
+                "id": response.user.id,
+                "email": response.user.email,
+                "full_name": response.user.user_metadata.get("full_name"),
+                "role": response.user.role,
+                "sub": response.user.id,  # For compatibility
+            }
+
         return None
-    except jwt.InvalidTokenError:
-        # Invalid token
-        return None
-    except Exception:
-        # Other errors
+
+    except Exception as e:
+        # Token is invalid or expired
+        print(f"Token verification error: {str(e)}")
         return None
 
 
-def get_user_id_from_token(token: str) -> Optional[str]:
+async def get_user_id_from_token(token: str) -> Optional[str]:
     """
     Extract user ID from Supabase JWT token.
 
@@ -56,15 +53,14 @@ def get_user_id_from_token(token: str) -> Optional[str]:
     Returns:
         The user ID if valid, None otherwise
     """
-    payload = verify_supabase_token(token)
-    if not payload:
+    user_data = await verify_supabase_token(token)
+    if not user_data:
         return None
 
-    # Supabase stores user ID in 'sub' claim
-    return payload.get("sub")
+    return user_data.get("id") or user_data.get("sub")
 
 
-def get_email_from_token(token: str) -> Optional[str]:
+async def get_email_from_token(token: str) -> Optional[str]:
     """
     Extract email from Supabase JWT token.
 
@@ -74,11 +70,11 @@ def get_email_from_token(token: str) -> Optional[str]:
     Returns:
         The email if present, None otherwise
     """
-    payload = verify_supabase_token(token)
-    if not payload:
+    user_data = await verify_supabase_token(token)
+    if not user_data:
         return None
 
-    return payload.get("email")
+    return user_data.get("email")
 
 
 # Legacy functions for backward compatibility
@@ -88,12 +84,13 @@ def create_access_token(data: Dict[str, Any]) -> str:
     Kept for backward compatibility with mock mode
     """
     import uuid
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
+    import jwt
 
     to_encode = data.copy()
     to_encode.update({
-        "exp": datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRE_MINUTES),
-        "iat": datetime.utcnow(),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES),
+        "iat": datetime.now(timezone.utc),
         "jti": str(uuid.uuid4())
     })
 
@@ -107,7 +104,24 @@ def create_access_token(data: Dict[str, Any]) -> str:
 
 def verify_token(token: str) -> Optional[str]:
     """
-    Verify token and return user_id (sub claim) if valid
-    Now uses Supabase token verification
+    Verify token synchronously and return user_id if valid.
+    This is a synchronous wrapper for backward compatibility.
     """
-    return get_user_id_from_token(token)
+    import asyncio
+    try:
+        loop = asyncio.get_running_loop()
+        # We're in an async context, create a task
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            return loop.run_in_executor(pool, lambda: asyncio.run(get_user_id_from_token(token))).result()
+    except RuntimeError:
+        # No event loop running, run directly
+        return asyncio.run(get_user_id_from_token(token))
+
+
+async def verify_token_async(token: str) -> Optional[str]:
+    """
+    Verify token asynchronously and return user_id if valid.
+    Use this in async endpoints.
+    """
+    return await get_user_id_from_token(token)

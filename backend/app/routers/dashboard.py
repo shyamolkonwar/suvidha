@@ -1,7 +1,7 @@
 """Dashboard Router - Summary endpoint for dashboard page"""
 from fastapi import APIRouter, HTTPException, Header, status
 from typing import Optional, Dict, Any
-from app.core.security import verify_token
+from app.core.security import get_user_id_from_token
 from app.services.supabase_db import (
     get_user_pending_bills,
     get_active_alerts,
@@ -20,7 +20,7 @@ async def _get_user_from_token(authorization: Optional[str]) -> str:
         )
 
     token = authorization.split(" ")[1] if authorization.startswith("Bearer ") else authorization
-    user_id = verify_token(token)
+    user_id = await get_user_id_from_token(token)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
