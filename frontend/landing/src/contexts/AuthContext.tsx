@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let isRedirecting = false;
 
     // Initialize auth state
     const initAuth = async () => {
@@ -79,13 +80,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes - this is key for proper state management
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.email);
-      if (!mounted) return;
+      if (!mounted || isRedirecting) return;
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
           const userData = await fetchUserProfile(session.user);
-          if (userData) {
+          if (userData && !isRedirecting) {
             // Successfully logged in - redirect to dashboard
+            isRedirecting = true;
             router.replace('/dashboard');
           }
         }
@@ -102,44 +104,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [router]);
 
-  // Login with timeout workaround for known Supabase issue
+  // Login - fire and forget, let onAuthStateChange handle the rest
   const login = async (email: string, password: string) => {
     console.log('Attempting login for:', email);
 
-    // Use Promise.race with timeout to handle the hanging promise issue
-    // See: https://github.com/orgs/supabase/discussions/41329
-    const signInWithTimeout = Promise.race([
-      signIn(email, password),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Login timeout')), 5000)
-      )
-    ]);
-
-    try {
-      const data = await signInWithTimeout as any;
-      console.log('Sign in completed');
-
-      // Don't manually fetch user here - let onAuthStateChange handle it
-      // Just return immediately and let the auth state change listener redirect
-      return;
-    } catch (error: any) {
-      console.error('Login error:', error);
+    // Call signIn without awaiting - let it complete in background
+    // The onAuthStateChange listener will handle the success case
+    signIn(email, password).catch((error) => {
+      console.error('Sign in failed:', error);
       throw error;
-    }
+    });
+
+    // Return immediately after initiating sign in
+    // The auth state change listener will handle redirect
+    return Promise.resolve();
   };
 
   const register = async (email: string, password: string, fullName?: string) => {
     console.log('Attempting registration for:', email);
-    try {
-      const data = await signUp(email, password, fullName || '');
-      console.log('Sign up completed');
 
-      // Don't manually fetch user - let onAuthStateChange handle it
-      return;
-    } catch (error: any) {
-      console.error('Registration error:', error);
+    // Call signUp without awaiting
+    signUp(email, password, fullName || '').catch((error) => {
+      console.error('Sign up failed:', error);
       throw error;
-    }
+    });
+
+    return Promise.resolve();
   };
 
   const logout = async () => {

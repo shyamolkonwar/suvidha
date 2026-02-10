@@ -24,13 +24,19 @@ export default function LoginPage() {
     try {
       if (isLogin) {
         await login(email, password);
+        // Login completes immediately - let AuthContext handle redirect
+        // Show loading state briefly while redirect happens
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
       } else {
         await register(email, password, fullName);
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
       }
-      // Note: AuthContext handles redirect to dashboard automatically
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
-    } finally {
       setIsLoading(false);
     }
   };
